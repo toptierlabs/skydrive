@@ -9,7 +9,7 @@ module Skydrive
     def initialize access_token
       @access_token = access_token
 
-      self.class.default_params :access_token => @access_token
+      self.class.default_params :access_token => @access_token.token
     end
 
     # Do a 'get' request
@@ -87,7 +87,7 @@ module Skydrive
             return "Skydrive::#{filtered_response["type"].capitalize}".constantize.new(self, filtered_response)
           end
         else
-          return true
+          return filtered_response
         end
       else
         raise Skydrive::Error.new("code" => "http_error_#{response.response.code}", "message" => response.response.message)
