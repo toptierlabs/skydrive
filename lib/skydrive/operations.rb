@@ -1,6 +1,8 @@
 module Skydrive
   # The basic operations
   module Operations
+    require 'uri'
+    require 'net/http'
 
     # Your home folder
     # @return [Skydrive::Folder]
@@ -177,6 +179,34 @@ module Skydrive
     # @option options [String] :message The comment message
     def create_comment object_id, options={}
       response = post("/#{object_id}/comments", options)
+    end
+
+    # @param [String] upload_path url for the folder to which the file will be uploaded
+    # (eg. https://apis.live.net/v5.0/me/skydrive or replace /me/skydrive for the folder id)
+    # @param [String] doc_name Name of the file
+    # @param [String] token Client access token
+    # @param [Tempfile] Tempfile created to upload the file
+    def upload_file(upload_path, doc_name, token, tempfile)
+      site = upload_path + "/files?access_token="+ token.to_s
+      boundary = 'A300x'
+      uri = URI.parse(site)
+      post_body = []
+      post_body << "--" + boundary + "\r\n"
+      post_body << "Content-Disposition: form-data; name=\"file\"; filename=\"#{doc_name}\"\r\n"
+      post_body << "Content-Type: application/octet-stream,\"\r\n"
+      post_body << "\r\n"
+      post_body << File.read(tempfile)
+      post_body << "\r\n"
+      post_body << "--"+ boundary +"--\r\n"
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      request = Net::HTTP::Post.new(uri.request_uri)
+      request["Content-Type"] = "multipart/form-data; boundary=" + boundary
+      request.body = post_body.join
+      response = http.request(request)
+      response
     end
 
   end
