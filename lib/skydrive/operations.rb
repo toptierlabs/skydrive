@@ -185,28 +185,24 @@ module Skydrive
     # (eg. https://apis.live.net/v5.0/me/skydrive or replace /me/skydrive for the folder id)
     # @param [String] doc_name Name of the file
     # @param [String] token Client access token
-    # @param [Tempfile] Tempfile created to upload the file
-    def upload_file(upload_path, doc_name, token, tempfile)
-      site = upload_path + "/files?access_token="+ token.to_s
+    # @param [String] result of do File.read(tempfile) to upload the file
+    def upload_file(upload_path, doc_name, token, encoding_file)
+      site = upload_path + "/files"
       boundary = 'A300x'
-      uri = URI.parse(site)
       post_body = []
       post_body << "--" + boundary + "\r\n"
       post_body << "Content-Disposition: form-data; name=\"file\"; filename=\"#{doc_name}\"\r\n"
       post_body << "Content-Type: application/octet-stream,\"\r\n"
       post_body << "\r\n"
-      post_body << File.read(tempfile)
+      post_body << encoding_file
       post_body << "\r\n"
       post_body << "--"+ boundary +"--\r\n"
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      request = Net::HTTP::Post.new(uri.request_uri)
-      request["Content-Type"] = "multipart/form-data; boundary=" + boundary
-      request.body = post_body.join
-      response = http.request(request)
-      response
+      response = HTTParty.post(site.to_str,
+                               :query => {:access_token => token.to_s},
+                               :body => post_body.join,
+                             :headers => { 'Content-Type' => "multipart/form-data; boundary=" + boundary } )
+      response.parsed_response
     end
 
   end
